@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fact Checker</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        .fade-in {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .loading-animation {
+            display: none;
+        }
+        .loading-animation.active {
+            display: flex;
+        }
+        .prose {
+            max-width: none;
+        }
+        .citations {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .citations a {
+            color: #60a5fa;
+            text-decoration: none;
+            display: block;
+            margin: 0.5rem 0;
+            transition: color 0.2s;
+        }
+        .citations a:hover {
+            color: #93c5fd;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-base-300">
+    <div class="container mx-auto px-4 py-8">
+        <div class="fade-in">
+            <h1 class="text-4xl font-bold text-primary mb-8 text-center">Super Simple Fact Checker with Perplexity Search</h1>
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <form id="fact-check-form" class="space-y-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Paste text or content to fact-check</span>
+                            </label>
+                            <textarea class="textarea textarea-bordered h-32" id="content" required></textarea>
+                        </div>
+                        <button class="btn btn-primary w-full" type="submit">Check Facts</button>
+                    </form>
+
+                    <div class="loading-animation flex-col items-center justify-center space-y-4 my-8">
+                        <div class="loading loading-spinner loading-lg text-primary"></div>
+                        <p class="text-center text-primary">Analyzing content...</p>
+                    </div>
+
+                    <div id="result" class="mt-8 fade-in hidden">
+                        <div class="divider">Results</div>
+                        <div id="result-content" class="prose prose-invert"></div>
+                        <div id="citations" class="citations hidden">
+                            <div class="divider">Citations</div>
+                            <div id="citations-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            anime({
+                targets: '.fade-in',
+                opacity: [0, 1],
+                translateY: [20, 0],
+                duration: 1000,
+                easing: 'easeOutExpo',
+                delay: anime.stagger(200)
+            });
+
+            const form = document.getElementById('fact-check-form');
+            const loading = document.querySelector('.loading-animation');
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('result-content');
+            const citations = document.getElementById('citations');
+            const citationsContent = document.getElementById('citations-content');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const content = document.getElementById('content').value;
+
+                // Show loading animation
+                loading.classList.add('active');
+                result.classList.add('hidden');
+                citations.classList.add('hidden');
+
+                try {
+                    const response = await fetch('/fact-check', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ content }),
+                    });
+
+                    const data = await response.json();
+                    
+                    // Hide loading and show result
+                    loading.classList.remove('active');
+                    result.classList.remove('hidden');
+                    
+                    // Display main content
+                    resultContent.innerHTML = data.result.replace(/\n/g, '<br>');
+
+                    // Display citations if available
+                    if (data.citations && data.citations.length > 0) {
+                        citations.classList.remove('hidden');
+                        citationsContent.innerHTML = data.citations
+                            .map((citation, index) => `<a href="${citation.url}" target="_blank" rel="noopener noreferrer">Source ${index + 1}: ${citation.url}</a>`)
+                            .join('');
+                    } else {
+                        citations.classList.add('hidden');
+                    }
+
+                    // Animate result
+                    anime({
+                        targets: '#result',
+                        opacity: [0, 1],
+                        translateY: [20, 0],
+                        duration: 800,
+                        easing: 'easeOutExpo'
+                    });
+
+                } catch (error) {
+                    loading.classList.remove('active');
+                    alert('Error: ' + error.message);
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

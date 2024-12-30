@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+jinja2
+python-multipart
+requests
+termcolor
+python-dotenv 
